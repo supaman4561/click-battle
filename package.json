@@ -1,0 +1,13 @@
+{
+  "name": "click-battle",
+  "version": "0.0.0",
+  "description": "You can get score when click a target.",
+  "main": "server.js",
+  "repository": "https://github.com/supaman4561/click-battle.git",
+  "author": "supaman4561",
+  "dependencies": {
+    "async": "~0.2.8",
+    "express": "~3.2.4",
+    "socket.io": "~0.9.14"
+  }
+}
