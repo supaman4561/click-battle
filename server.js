@@ -1,23 +1,55 @@
 var http = require('http');
-var events = require('events');
+var path = require('path');
 
-var server = http.createServer();
-var eventEmitter = new events.EventEmitter();
+var async = require('async');
+var socketio = require('socket.io');
+var express = require('express');
 
-server.on('request', dispHelloWorld);
-eventEmitter.on('click', responseClick);
+var router = express();
+var server = http.createServer(router);
+var io = socketio.listen(server);
 
-function dispHelloWorld(req, res){
-    res.writeHead(200, {'Content-Type': 'text/plain'});
-    res.write("Hello World");
-    res.end();
+router.use(express.static(path.resolve(__dirname, 'client')));
+var sockets = [];
+
+io.sockets.on('connection', function (socket) {
+    sockets.push(socket);
+    
+    socket.on('disconnect', function (){
+       sockets.splice(sockets.indexOf(socket), 1); 
+       updateRoster();
+    });
+    
+    socket.on('click', function () {
+       console.log("click"); 
+    });
+    
+    socket.on('identify', function (name) {
+       socket.set('name', String(name || 'Anonimous'), function (err) {
+          updateRoster(); 
+       });
+    });
+});
+
+function updateRoster() {
+  async.map(
+    sockets,
+    function (socket, callback) {
+      socket.get('name', callback);
+    },
+    function (err, names) {
+      broadcast('roster', names);
+    }
+  );
 }
 
-function responseClick() {
-    console.log("clicked");
+function broadcast(event, data) {
+  sockets.forEach(function (socket) {
+    socket.emit(event, data);
+  });
 }
 
-server.listen(8080, '0.0.0.0', () => {
-    var addr = server.address();
-    console.log("Click-Battle server listening at", addr.address + ":" + addr.port); 
+server.listen(process.env.PORT || 3000, process.env.IP || "0.0.0.0", function(){
+  var addr = server.address();
+  console.log("ClickBattle server listening at", addr.address + ":" + addr.port);
 });
